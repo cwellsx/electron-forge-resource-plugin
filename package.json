@@ -1,0 +1,48 @@
+{
+  "name": "electron-forge-resource-plugin",
+  "version": "0.1.0",
+  "description": "Plugin for Electron Forge to build and package an external resource",
+  "main": "dist/ResourcePlugin.js",
+  "types": "dist/ResourcePlugin.d.ts",
+  "scripts": {
+    "build": "node tools/cleanup && tsc -p tsconfig.json",
+    "clean": "node tools/cleanup",
+    "package": "npm run build && npm pack"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "electron",
+    "forge",
+    "resource",
+    "plugin"
+  ],
+  "author": {
+    "name": "cwellsx",
+    "email": "cwellsx@gmail.com"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/cwellsx/electron-forge-resource-plugin",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:cwellsx/electron-forge-resource-plugin.git"
+  },
+  "bugs": {
+    "url": "https://github.com/cwellsx/electron-forge-resource-plugin/issues"
+  },
+  "devDependencies": {
+    "@types/klaw": "^3.0.3",
+    "@typescript-eslint/eslint-plugin": "^4.31.1",
+    "@typescript-eslint/parser": "^4.31.1",
+    "eslint": "^7.32.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "prettier": "^2.7.1",
+    "ts-loader": "^9.2.5",
+    "typescript": "^4.8.3"
+  },
+  "dependencies": {
+    "@electron-forge/plugin-base": "^6.0.0-beta.66"
+  }
+}
