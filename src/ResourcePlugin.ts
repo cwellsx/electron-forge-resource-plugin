@@ -112,7 +112,7 @@ class Implementation {
 
     // when it's packaged the filename specified by path will be in the resources directory or subdirectory
     var filename = path.basename(this.path);
-    var dirname = this.dirname ?? this.copydir ? path.basename(path.dirname(this.path)) : undefined;
+    var dirname = this.dirname ?? (this.copydir ? path.basename(path.dirname(this.path)) : undefined);
     var environmentVariableValue = dirname
       ? path.join("resources", dirname, filename)
       : path.join("resources", filename);
