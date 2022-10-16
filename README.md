@@ -249,15 +249,10 @@ module.exports = {
 
 The benefit of a plugin like this one, instead of hooks, is that a plugin is easily configurable and therefore reusable.
 
-### Error when installing the plugin locally
+### Error message `Multiple plugins tried to take control of the start command, please remove one of them`
 
-When developing the plugin it's convenient to install it into your application locally:
-
-```bash
-npm install -D ../electron-forge-resource-plugin
-```
-
-If you do then there's an error when you try to run it:
+When you install this plugin into an Electron Forge project, you may get an error like the following when you
+run the `npm run start` comment:
 
 ```
 An unhandled rejection has occurred inside Forge:
@@ -267,29 +262,14 @@ Error: Multiple plugins tried to take control of the start command, please remov
 Electron Forge was terminated.
 ```
 
-To fix this you must add a line of code to your application's
-`./node_modules/@electron-forge/core/dist/util/plugin-interface.js`:
+The reason for this error message is:
 
-```js
-    async overrideStartLogic(opts) {
-        let newStartFn;
-        const claimed = [];
-        for (const plugin of this.plugins){
-            if (typeof plugin.startLogic === 'function' && plugin.startLogic !== _pluginBase.default.prototype.startLogic) {
-                if (plugin.name === "resource") continue; // <== allow the resource plugin to be installed locally
-                claimed.push(plugin.name);
-                newStartFn = plugin.startLogic;
-            }
-        }
-        if (claimed.length > 1) {
-            throw new Error(`Multiple plugins tried to take control of the start command, please remove one of them\n --> ${claimed.join(', ')}`);
-        }
-```
+- This plugin is a subclass of the Electron Forge `PluginBase` class,
+  and therefore defines a version of that class as a dependency
+- The `PluginBase` class is also used by other plugins including the Webpack plugin
+- If this plugin depends on a newer version of the `PluginBase` class than is already used in your project,
+  then it's installed with its own private copy of the `PluginBase` class
+- Having two installed instances of the `PluginBase` class triggers this error
 
-This is because when you install this resource plugin locally,
-it loads and uses its own copy of the the plugin base class.
-
-I thought that instead you could temporarily rename the application's
-`./node_modules/electron-forge-resource-plugin/node_modules` folder to hide it --
-but that doesn't work because the resource plugin still doesn't use the original copy of plugin_base
-(and I don't know why not) -- so I alter `plugin-interface.js` as shown above.
+To fix it, ensure that the version of Electron Forge used by your project is the same or later than the version
+used by this plugin -- if not, update the dependencies of your project to use a newer version.
