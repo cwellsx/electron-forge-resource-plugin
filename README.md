@@ -87,7 +87,7 @@ Add a new element to the `config.forge.plugins` array of your `package.json`, fo
 
 The above configuration, which is shown as an example, is copied from the `dotnet` branch of this project:
 
-- [Electron Forge Template](../electron-forge-template)
+- [Electron Forge Template](https://github.com/cwellsx/electron_forge_template/blob/dotnet/BOILERPLATE.md#add-ipc-to-an-external-process)
 
 ### Add the environment variable to `webpack.main.config.js`
 
