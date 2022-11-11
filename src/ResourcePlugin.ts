@@ -1,11 +1,11 @@
-import PluginBase from '@electron-forge/plugin-base';
-import { ForgeArch, ForgeConfig, ForgeHookFn, ForgePlatform } from '@electron-forge/shared-types';
-import { exec } from 'child_process';
-import { Stats } from 'fs';
-import * as fs from 'fs/promises';
-import os from 'os';
-import path from 'path';
-import { promisify } from 'util';
+import { PluginBase } from "@electron-forge/plugin-base";
+import { ForgeArch, ForgeConfig, ForgeHookMap, ForgePlatform, ResolvedForgeConfig } from "@electron-forge/shared-types";
+import { exec } from "child_process";
+import { Stats } from "fs";
+import * as fs from "fs/promises";
+import os from "os";
+import path from "path";
+import { promisify } from "util";
 
 /*
   ResourcePlugin defines the API required of any plugin.
@@ -69,7 +69,7 @@ class Implementation {
     if (this.verbose) console.log(`ResourcePlugin: ${message}`);
   }
 
-  async resolveForgeConfig(forgeConfig: ForgeConfig): Promise<ForgeConfig> {
+  async resolveForgeConfig(forgeConfig: ResolvedForgeConfig): Promise<ResolvedForgeConfig> {
     this.log(`resolveForgeConfig`);
 
     // edit the forgeConfig to add the resource to packagerConfig.extraResource
@@ -234,18 +234,16 @@ export default class ResourcePlugin extends PluginBase<ResourcePluginConfig> {
     this.impl.init(dir);
   }
 
-  getHook(hookName: string): ForgeHookFn | null {
-    this.impl.log(`getHook(${hookName})`);
+  getHook(): ForgeHookMap {
+    this.impl.log(`getHook()`);
     // see https://www.electronforge.io/configuration#hooks for a list of the hook names
     // the parameters passed to different hook functions can be seen by searching electron forge source for "runHook"
-    switch (hookName) {
-      case "resolveForgeConfig":
-        return this.impl.resolveForgeConfig.bind(this.impl);
-      case "generateAssets":
-        return this.impl.generateAssets.bind(this.impl);
-      case "prePackage":
-        return this.impl.prePackage.bind(this.impl);
-    }
-    return null;
+    return {
+      resolveForgeConfig: this.impl.resolveForgeConfig.bind(this.impl),
+      generateAssets: this.impl.generateAssets.bind(this.impl),
+      prePackage: this.impl.prePackage.bind(this.impl),
+    };
   }
 }
+
+export { ResourcePlugin };

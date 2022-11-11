@@ -1,4 +1,12 @@
-### Unrelease
+### Unreleased
+
+- (currently none)
+
+### 1.0.0 (2022-11-10)
+
+#### Added
+
+- Update to the release version 6.0.0 of Electron Forge
 
 #### Fixed
 
