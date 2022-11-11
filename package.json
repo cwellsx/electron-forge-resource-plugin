@@ -1,6 +1,6 @@
 {
   "name": "electron-forge-resource-plugin",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0-alpha.2",
   "description": "Plugin for Electron Forge to build and package an external resource",
   "main": "dist/ResourcePlugin.js",
   "types": "dist/ResourcePlugin.d.ts",

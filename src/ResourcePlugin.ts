@@ -66,7 +66,7 @@ class Implementation {
   }
 
   log(message: string): void {
-    if (this.verbose) console.log(`ResourcePlugin: ${message}`);
+    if (this.verbose || true) console.log(`ResourcePlugin: ${message}`);
   }
 
   async resolveForgeConfig(forgeConfig: ResolvedForgeConfig): Promise<ResolvedForgeConfig> {
@@ -223,7 +223,9 @@ export default class ResourcePlugin extends PluginBase<ResourcePluginConfig> {
 
   constructor(c: ResourcePluginConfig) {
     super(c);
-
+    console.log("..!");
+    console.log("ResourcePlugin constructor");
+    console.log("..!");
     this.init = this.init.bind(this);
     this.getHook = this.getHook.bind(this);
 
