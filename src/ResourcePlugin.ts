@@ -46,8 +46,6 @@ class Implementation {
   private copied: string;
 
   constructor(config: ResourcePluginConfig) {
-    this.log(JSON.stringify(config));
-
     this.env = config.env;
     this.path = config.path;
     this.command = config.build?.command;
@@ -66,7 +64,7 @@ class Implementation {
   }
 
   log(message: string): void {
-    if (this.verbose || true) console.log(`ResourcePlugin: ${message}`);
+    if (this.verbose) console.log(`ResourcePlugin: ${message}`);
   }
 
   async resolveForgeConfig(forgeConfig: ResolvedForgeConfig): Promise<ResolvedForgeConfig> {
@@ -223,16 +221,14 @@ export default class ResourcePlugin extends PluginBase<ResourcePluginConfig> {
 
   constructor(c: ResourcePluginConfig) {
     super(c);
-    console.log("..!");
-    console.log("ResourcePlugin constructor");
-    console.log("..!");
+    this.impl = new Implementation(c);
+    this.impl.log("ResourcePlugin constructor");
     this.init = this.init.bind(this);
     this.getHook = this.getHook.bind(this);
-
-    this.impl = new Implementation(c);
   }
 
-  init(dir: string): void {
+  init(dir: string, config: ResolvedForgeConfig): void {
+    super.init(dir, config);
     this.impl.init(dir);
   }
 
