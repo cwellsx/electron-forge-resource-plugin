@@ -224,7 +224,7 @@ export default class ResourcePlugin extends PluginBase<ResourcePluginConfig> {
     this.impl = new Implementation(c);
     this.impl.log("ResourcePlugin constructor");
     this.init = this.init.bind(this);
-    this.getHook = this.getHook.bind(this);
+    this.getHooks = this.getHooks.bind(this);
   }
 
   init(dir: string, config: ResolvedForgeConfig): void {
@@ -232,8 +232,8 @@ export default class ResourcePlugin extends PluginBase<ResourcePluginConfig> {
     this.impl.init(dir);
   }
 
-  getHook(): ForgeHookMap {
-    this.impl.log(`getHook()`);
+  getHooks(): ForgeHookMap {
+    this.impl.log(`getHooks()`);
     // see https://www.electronforge.io/configuration#hooks for a list of the hook names
     // the parameters passed to different hook functions can be seen by searching electron forge source for "runHook"
     return {
