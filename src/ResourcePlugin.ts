@@ -1,17 +1,31 @@
-import { PluginBase } from "@electron-forge/plugin-base";
-import { ForgeArch, ForgeConfig, ForgeHookMap, ForgePlatform, ResolvedForgeConfig } from "@electron-forge/shared-types";
-import { exec } from "child_process";
-import { Stats } from "fs";
-import * as fs from "fs/promises";
-import os from "os";
-import path from "path";
-import { promisify } from "util";
+import { PluginBase } from '@electron-forge/plugin-base';
+import { ForgeArch, ForgeConfig, ForgeHookMap, ForgePlatform, ResolvedForgeConfig } from '@electron-forge/shared-types';
+import { exec } from 'child_process';
+import { Stats } from 'fs';
+import * as fs from 'fs/promises';
+import os from 'os';
+import path from 'path';
+import { promisify } from 'util';
+
+import { addDefine } from './EditWebpackConfig';
 
 /*
   ResourcePlugin defines the API required of any plugin.
   Implementation defines the implementation of this plugin.
   ResourcePluginConfig declares the format of this plugin's configuration which the user defines in their package.json.
 */
+
+function logif(b: boolean | undefined, message: string): void {
+  // note the instructions in the README about setting the DEBUG environment variable, otherwise this output is hidden
+  if (b) console.log(`ResourcePlugin: ${message}`);
+}
+
+type script = "import" | "init" | "make" | "package" | "publish" | "start";
+// determine which of the @electron-forge/cli/dist is being run
+function isScript(scripts: script[]): boolean {
+  const cli = process.argv[1];
+  return scripts.some((s) => cli.includes(`electron-forge-${s}`));
+}
 
 export interface ResourcePluginConfig {
   env: string;
@@ -32,18 +46,22 @@ function isAlways(arg: any): arg is { always: boolean } {
 }
 
 class Implementation {
+  // these are mutable state values
   private dir!: string; // because init() is the first method called, dir is not undefined when hook methods are called
+  private isPredefined: boolean = false;
 
-  private env: string;
-  private path: string;
-  private command?: string;
-  private sources?: string | string[] | { always: boolean };
-  private copydir: boolean;
-  private dirname?: string;
-  private verbose?: boolean;
+  // these are flattened config values
+  private readonly env: string;
+  private readonly path: string;
+  private readonly command?: string;
+  private readonly sources?: string | string[] | { always: boolean };
+  private readonly copydir: boolean;
+  private readonly dirname?: string;
+  private readonly verbose?: boolean;
 
-  private tmpdir?: string;
-  private copied: string;
+  // these are derived config values
+  private readonly tmpdir?: string;
+  private readonly copied: string;
 
   constructor(config: ResourcePluginConfig) {
     this.env = config.env;
@@ -63,24 +81,12 @@ class Implementation {
     this.dir = dir;
   }
 
-  log(message: string): void {
-    if (this.verbose) console.log(`ResourcePlugin: ${message}`);
-  }
-
   async resolveForgeConfig(forgeConfig: ResolvedForgeConfig): Promise<ResolvedForgeConfig> {
     this.log(`resolveForgeConfig`);
-
     // edit the forgeConfig to add the resource to packagerConfig.extraResource
-    var resource = this.tmpdir ?? this.copied;
-
-    var extraResource = forgeConfig.packagerConfig.extraResource;
-    if (!extraResource) extraResource = resource;
-    else if (typeof extraResource === "string") extraResource = [extraResource, resource];
-    else if (Array.isArray(extraResource)) extraResource.push(resource);
-    else throw new Error(`Unexpected extraResource value ${extraResource}`);
-
-    this.log(`setting extraResource=${extraResource}`);
-    forgeConfig.packagerConfig.extraResource = extraResource;
+    this.addPackagerExtraResource(forgeConfig);
+    // edit the forgeConfig to add the define to packagerConfig.extraResource
+    this.addWebpackDefine(forgeConfig);
     return Promise.resolve(forgeConfig);
   }
 
@@ -99,6 +105,7 @@ class Implementation {
     }
 
     // set the environment variable
+    const environmentVariableValue = this.getEnvironmentVariableValue(true);
     this.setEnvironmentVariableValue(this.path);
   }
 
@@ -108,17 +115,47 @@ class Implementation {
     // generateAssets has already been called
     await this.copyToTmpdir();
 
-    // when it's packaged the filename specified by path will be in the resources directory or subdirectory
-    var filename = path.basename(this.path);
-    var dirname = this.dirname ?? (this.copydir ? path.basename(path.dirname(this.path)) : undefined);
-    var environmentVariableValue = dirname
-      ? path.join("resources", dirname, filename)
-      : path.join("resources", filename);
-
+    const environmentVariableValue = this.getEnvironmentVariableValue(false);
     this.setEnvironmentVariableValue(environmentVariableValue);
   }
 
+  private getEnvironmentVariableValue(isStart: boolean): string {
+    if (isStart) return this.path;
+    // when it's packaged the filename specified by path will be in the resources directory or subdirectory
+    var filename = path.basename(this.path);
+    var dirname = this.dirname ?? (this.copydir ? path.basename(path.dirname(this.path)) : undefined);
+    return dirname ? path.join("resources", dirname, filename) : path.join("resources", filename);
+  }
+
+  private addPackagerExtraResource(forgeConfig: ResolvedForgeConfig): void {
+    var resource = this.tmpdir ?? this.copied;
+
+    var extraResource = forgeConfig.packagerConfig.extraResource;
+    if (!extraResource) extraResource = resource;
+    else if (typeof extraResource === "string") extraResource = [extraResource, resource];
+    else if (Array.isArray(extraResource)) extraResource.push(resource);
+    else throw new Error(`Unexpected extraResource value ${extraResource}`);
+
+    this.log(`setting extraResource=${extraResource}`);
+    forgeConfig.packagerConfig.extraResource = extraResource;
+  }
+
+  private addWebpackDefine(forgeConfig: ResolvedForgeConfig): void {
+    // the path we want depends on whether it's being started locally or whether it's being packaged
+    var environmentVariableValue: string;
+    if (isScript(["make", "package", "publish"])) environmentVariableValue = this.getEnvironmentVariableValue(false);
+    else if (isScript(["start"])) environmentVariableValue = this.getEnvironmentVariableValue(true);
+    else {
+      this.log("Unknown electron-forge script");
+      return;
+    }
+    this.isPredefined = addDefine(forgeConfig, this.env, environmentVariableValue, this.log.bind(this));
+  }
+
   private setEnvironmentVariableValue(value: string): void {
+    // setting the environment variable is needed if the user must edit the Webpack Plugin configuration file,
+    // but not if the addWebpackDefine method was able to edit the Webpack configuration programmatically
+    if (this.isPredefined) return;
     // set the environment variable
     this.log(`setting 'process.env[${this.env}] = ${value};'`);
     process.env[this.env] = value;
@@ -212,6 +249,10 @@ class Implementation {
     this.log(`Not rebuilding: '${this.path}'`);
     return false;
   }
+
+  log(message: string): void {
+    logif(this.verbose, message);
+  }
 }
 
 export default class ResourcePlugin extends PluginBase<ResourcePluginConfig> {
@@ -220,16 +261,16 @@ export default class ResourcePlugin extends PluginBase<ResourcePluginConfig> {
   private impl: Implementation;
 
   constructor(c: ResourcePluginConfig) {
+    logif(c.verbose, "constructor");
     super(c);
     this.impl = new Implementation(c);
-    this.impl.log("ResourcePlugin constructor");
     this.init = this.init.bind(this);
     this.getHooks = this.getHooks.bind(this);
   }
 
   init(dir: string, config: ResolvedForgeConfig): void {
-    super.init(dir, config);
     this.impl.init(dir);
+    super.init(dir, config);
   }
 
   getHooks(): ForgeHookMap {

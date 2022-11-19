@@ -4,9 +4,8 @@ This is a plugin for Electron Forge.
 
 - [Purpose](#purpose)
 - [How to use it](#how-to-use-it)
-  - [Configure it in `package.json`](#configure-it-in-packagejson)
-  - [Add the environment variable to `webpack.main.config.js`](#add-the-environment-variable-to-webpackmainconfigjs)
-  - [Use the environment variable in your application](#use-the-environment-variable-in-your-application)
+  - [Configure it in `forge.config.ts`](#configure-it-in-forgeconfigts)
+  - [Use the path in your application](#use-the-path-in-your-application)
 - [Configuration](#configuration)
   - [`env`](#env)
   - [`path`](#path)
@@ -14,10 +13,12 @@ This is a plugin for Electron Forge.
   - [`build.sources`](#buildsources)
   - [`package.dirname`](#packagedirname)
   - [`package.copydir`](#packagecopydir)
+  - [`verbose`](#verbose)
 - [Packaging a directory](#packaging-a-directory)
 - [Notes](#notes)
   - [Using hooks instead of a plugin](#using-hooks-instead-of-a-plugin)
-  - [Error when installing the plugin locally](#error-when-installing-the-plugin-locally)
+  - [Error message `Multiple plugins tried to take control of the start command, please remove one of them`](#error-message-multiple-plugins-tried-to-take-control-of-the-start-command-please-remove-one-of-them)
+  - [Older configuration](#older-configuration)
 
 ## Purpose
 
@@ -56,76 +57,37 @@ To use this plugin:
    npm install -D electron-forge-resource-plugin
    ```
 
-2. Configure it by adding to the `config.forge.plugins` array in your `package.json`
-3. Add to your `webpack.main.config.js` to make the new environment variable available to your application
-4. Use the new environment in your application
+2. Configure it by adding to the `config.plugins` array of your `forge.config.ts`
+3. Use the new symbol in your application
 
-### Configure it in `package.json`
+### Configure it in `forge.config.ts`
 
-Add a new element to the `config.forge.plugins` array of your `package.json`, for example:
+Add a new element to the `config.plugins` array of your `forge.config.ts`, for example:
 
-```json
-"plugins": [
-  [
-    "electron-forge-resource-plugin",
-    {
-      "env": "CORE_EXE",
-      "path": "./src.dotnet/bin/Release/net5.0/Core.exe",
-      "build": {
-        "command": "dotnet.exe build ./src.dotnet/Core.csproj --verbosity normal --configuration Release",
-        "sources": "./src.dotnet/"
-      },
-      "package": {
-        "dirname": "core"
-      },
-      "verbose": true
-    }
-  ],
-  [
-    "@electron-forge/plugin-webpack",
+```ts
+new ResourcePlugin({
+  env: "CORE_EXE",
+  path: "./src.dotnet/bin/Release/net5.0/Core.exe",
+  build: {
+    command: "dotnet.exe build ./src.dotnet/Core.csproj --verbosity normal --configuration Release",
+    sources: "./src.dotnet/",
+  },
+  package: {
+    dirname: "core",
+  },
+  verbose: true,
+});
 ```
 
 The above configuration, which is shown as an example, is copied from the `dotnet` branch of this project:
 
 - [Electron Forge Template](https://github.com/cwellsx/electron_forge_template/blob/dotnet/BOILERPLATE.md#add-ipc-to-an-external-process)
 
-### Add the environment variable to `webpack.main.config.js`
+See [the `examples.new` folder](./examples.new) for a complete example of the configuration files.
 
-Add the `webpack.DefinePlugin` to `webpack.main.config.js`
-so that the environment variable defined by the resource plugin is passed to the application.
+### Use the path in your application
 
-```js
-const webpack = require("webpack");
-
-module.exports = {
-  /**
-   * This is the main entry point for your application, it's the first file
-   * that runs in the main process.
-   */
-  entry: "./src/index.ts",
-  // Put your normal webpack config below here
-  module: {
-    rules: require("./webpack.rules"),
-  },
-  plugins: [
-    new webpack.DefinePlugin({
-      CORE_EXE: JSON.stringify(process.env.CORE_EXE),
-    }),
-  ],
-  resolve: {
-    extensions: [".js", ".ts", ".jsx", ".tsx", ".css", ".json"],
-  },
-};
-```
-
-Ideally this plugin would do this for you automatically,
-however the `@electron-forge/plugin-webpack` plugin is already launching and controlling webpack --
-it is configurable, e.g. by editing `webpack.main.config.js` as shown above,
-but it doesn't seem to be extensible programmatically.
-
-### Use the environment variable in your application
-
-Your main application can now read the value, for example:
+Your main application can now read the value of the symbol, for example:
 
 ```ts
 declare const CORE_EXE: string;
@@ -155,8 +117,8 @@ export interface ResourcePluginConfig {
 }
 ```
 
-To configure it you define values in the `package.json` of your project,
-for example [as shown above](#configure-it-in-packagejson).
+To configure the plugin you pass this data to the plugin's constructor in your `forge.config.ts`
+for example [as shown above](#configure-it-in-forgeconfigts).
 
 ### `env`
 
@@ -196,6 +158,20 @@ Optional: the name of the subdirectory in the packaged `resources` directory
 Optional: whether to package only the file specified by `path`, or package the whole directory which contains that file.
 
 - If `package.copydir` is undefined, then the default is `true` if `package.dirname` is defined, otherwise `false`.
+
+### `verbose`
+
+Optional: enables the `log` method which writes progress messages to `console.log` which is helpful for debugging.
+
+To use this option you must also set the `DEBUG` environment variable to include `electron-forge` -- because otherwise
+the output is overwritten by the `listr2` package, which Electron Forge scripts use to write their progress messages.
+
+Set that environment variable before the scripts are run, for example on Windows by editing `package.json` as follow:
+
+```json
+  "scripts": {
+    "start": "set DEBUG=electron-forge&& electron-forge start",
+```
 
 ## Packaging a directory
 
@@ -273,3 +249,17 @@ The reason for this error message is:
 
 To fix it, ensure that the version of Electron Forge used by your project is the same or later than the version
 used by this plugin -- if not, update the dependencies of your project to use a newer version.
+
+### Older configuration
+
+The resource plugin is able to define the new symbol automatically, but only
+if the Webpack configuration is imported (i.e. instantiated) as JavaScript objects in the `forge.config.ts` file.
+
+In either of the following cases it cannot do this automatically:
+
+- Electron forge configuration is defined as JSON in `package.json` instead of as JavaScript in `forge.config.ts`
+- The Webpack Plugin configuration references Webpack configurations as filenames, which are loaded
+  by the Webpack Plugin instead of being imported into `forge.config.ts` before the plugins' hook methods are called
+
+In these cases you must edit a Webpack configuration file manually:
+see [the `examples.old` folder](./examples.old) for details.
