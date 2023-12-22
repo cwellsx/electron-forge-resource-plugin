@@ -1,6 +1,6 @@
 {
   "name": "electron-forge-resource-plugin",
-  "version": "1.0.0-alpha.6",
+  "version": "1.0.0-alpha.7",
   "description": "Plugin for Electron Forge to build and package an external resource",
   "main": "dist/ResourcePlugin.js",
   "types": "dist/ResourcePlugin.d.ts",
@@ -33,7 +33,7 @@
     "url": "https://github.com/cwellsx/electron-forge-resource-plugin/issues"
   },
   "devDependencies": {
-    "@electron-forge/plugin-webpack": "^6.0.0",
+    "@electron-forge/plugin-webpack": "^7.2.0",
     "@types/express-ws": "^3.0.1",
     "@types/klaw": "^3.0.3",
     "@typescript-eslint/eslint-plugin": "^4.31.1",

@@ -2,6 +2,12 @@
 
 - (currently none)
 
+### 1.0.0-alpha.7 (2023-12-22)
+
+#### Added
+
+- Update to the release version 7.2.0 of Electron Forge
+
 ### 1.0.0 (2022-11-10)
 
 #### Added
