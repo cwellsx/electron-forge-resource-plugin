@@ -1,13 +1,13 @@
-import { PluginBase } from '@electron-forge/plugin-base';
-import { ForgeArch, ForgeConfig, ForgeHookMap, ForgePlatform, ResolvedForgeConfig } from '@electron-forge/shared-types';
-import { exec } from 'child_process';
-import { Stats } from 'fs';
-import * as fs from 'fs/promises';
-import os from 'os';
-import path from 'path';
-import { promisify } from 'util';
+import { PluginBase } from "@electron-forge/plugin-base";
+import { ForgeArch, ForgeConfig, ForgeHookMap, ForgePlatform, ResolvedForgeConfig } from "@electron-forge/shared-types";
+import { exec } from "child_process";
+import { Stats } from "fs";
+import * as fs from "fs/promises";
+import os from "os";
+import path from "path";
+import { promisify } from "util";
 
-import { addDefine } from './EditWebpackConfig';
+import { addDefine } from "./EditWebpackConfig";
 
 /*
   ResourcePlugin defines the API required of any plugin.
@@ -131,6 +131,15 @@ class Implementation {
     var resource = this.tmpdir ?? this.copied;
 
     var extraResource = forgeConfig.packagerConfig.extraResource;
+
+    if (
+      (typeof extraResource === "string" && extraResource === resource) ||
+      (Array.isArray(extraResource) && extraResource.some((element) => element === resource))
+    ) {
+      this.log(`not setting extraResource again`);
+      return;
+    }
+
     if (!extraResource) extraResource = resource;
     else if (typeof extraResource === "string") extraResource = [extraResource, resource];
     else if (Array.isArray(extraResource)) extraResource.push(resource);

@@ -2,6 +2,14 @@
 
 - (currently none)
 
+### 1.0.0-alpha.8 (2023-12-24)
+
+#### Fixed
+
+- Tolerate recent version of Electron Forge calling the hook methods twice
+
+  [A custom plugin's init and hook methods are invoked twice during make](https://github.com/electron/forge/issues/3452)
+
 ### 1.0.0-alpha.7 (2023-12-22)
 
 #### Added
